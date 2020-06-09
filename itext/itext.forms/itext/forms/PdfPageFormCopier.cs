@@ -43,6 +43,7 @@ address: sales@itextpdf.com
 */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Common.Logging;
 using iText.Forms.Fields;
 using iText.IO.Util;
@@ -72,7 +73,19 @@ namespace iText.Forms {
 
         private PdfDocument documentTo;
 
+        private IList<PdfName> excludedKeys;
+
         private static ILog logger = LogManager.GetLogger(typeof(PdfPageFormCopier));
+
+        public PdfPageFormCopier(IEnumerable<PdfName> excludedKeys = null)
+        {
+            if (excludedKeys == null)
+            {
+                excludedKeys = new[] { PdfName.Fields, PdfName.DR };
+            }
+
+            this.excludedKeys = excludedKeys.ToList();
+        }
 
         public virtual void Copy(PdfPage fromPage, PdfPage toPage) {
             if (documentFrom != fromPage.GetDocument()) {
@@ -87,10 +100,7 @@ namespace iText.Forms {
                 return;
             }
             //duplicate AcroForm dictionary
-            IList<PdfName> excludedKeys = new List<PdfName>();
-            excludedKeys.Add(PdfName.Fields);
-            excludedKeys.Add(PdfName.DR);
-            PdfDictionary dict = formFrom.GetPdfObject().CopyTo(documentTo, excludedKeys, false);
+            PdfDictionary dict = formFrom.GetPdfObject().CopyTo(documentTo, this.excludedKeys, false);
             formTo.GetPdfObject().MergeDifferent(dict);
             IDictionary<String, PdfFormField> fieldsFrom = formFrom.GetFormFields();
             if (fieldsFrom.Count <= 0) {
